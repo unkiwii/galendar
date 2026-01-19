@@ -3,8 +3,6 @@ package calendar
 import (
 	"fmt"
 	"time"
-
-	"github.com/unkiwii/galendar/internal/config"
 )
 
 // Calendar represents a calendar for a given month
@@ -13,7 +11,7 @@ type Calendar struct {
 	Month     int
 	MonthName string
 	Weeks     [][]Day
-	WeekStart config.WeekStart
+	WeekStart time.Weekday
 }
 
 // Day represents a single day in the calendar
@@ -24,7 +22,7 @@ type Day struct {
 }
 
 // NewCalendar creates a new calendar for the given month and year
-func NewCalendar(year, month int, weekStart config.WeekStart) (*Calendar, error) {
+func NewCalendar(year, month int, weekStart time.Weekday) (*Calendar, error) {
 	if month < 1 || month > 12 {
 		return nil, fmt.Errorf("invalid month: %d (must be 1-12)", month)
 	}
@@ -43,16 +41,13 @@ func NewCalendar(year, month int, weekStart config.WeekStart) (*Calendar, error)
 	lastDay := firstDay.AddDate(0, 1, -1)
 
 	// Determine the starting day of the week for the calendar
-	var startOffset int
+	// Go's time.Weekday: Sunday=0, Monday=1, ..., Saturday=6
 	firstWeekday := int(firstDay.Weekday())
 
-	if weekStart == config.Sunday {
-		// Sunday = 0, so firstWeekday is already correct
-		startOffset = firstWeekday
-	} else {
-		// Monday = 0, so we need to adjust
-		startOffset = (firstWeekday + 6) % 7 // Convert Sunday=0 to Monday=0
-	}
+	// Convert to our week start system (0=Sunday, 1=Monday, ..., 6=Saturday)
+	// If weekStart is 0 (Sunday), firstWeekday (0) maps to 0
+	// If weekStart is 1 (Monday), firstWeekday (1) maps to 0, etc.
+	startOffset := (firstWeekday - int(weekStart) + 7) % 7
 
 	// Calculate how many days we need to show before the first day
 	daysBefore := startOffset
@@ -64,9 +59,9 @@ func NewCalendar(year, month int, weekStart config.WeekStart) (*Calendar, error)
 	var weeks [][]Day
 	currentDate := startDate
 
-	for week := 0; week < 6; week++ {
+	for range 6 {
 		var weekDays []Day
-		for day := 0; day < 7; day++ {
+		for day := range 7 {
 			isCurrentMonth := currentDate.Month() == time.Month(month) && currentDate.Year() == year
 
 			weekDays = append(weekDays, Day{
@@ -96,24 +91,25 @@ func NewCalendar(year, month int, weekStart config.WeekStart) (*Calendar, error)
 }
 
 // GetWeekdayNames returns the names of weekdays based on week start
-func GetWeekdayNames(weekStart config.WeekStart) []string {
+func GetWeekdayNames(weekStart time.Weekday) []string {
 	names := []string{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"}
-
-	if weekStart == config.Monday {
-		// Rotate to start with Monday
-		return append(names[1:], names[0])
-	}
-
-	return names
+	return rotateWeekdays(names, int(weekStart))
 }
 
 // GetWeekdayAbbreviations returns abbreviated weekday names
-func GetWeekdayAbbreviations(weekStart config.WeekStart) []string {
+func GetWeekdayAbbreviations(weekStart time.Weekday) []string {
 	names := []string{"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"}
+	return rotateWeekdays(names, int(weekStart))
+}
 
-	if weekStart == config.Monday {
-		return append(names[1:], names[0])
+// rotateWeekdays rotates the weekday names array to start with the specified day
+func rotateWeekdays(names []string, startDay int) []string {
+	if startDay < 0 || startDay > 6 {
+		startDay = 0 // Default to Sunday if invalid
 	}
-
-	return names
+	if startDay == 0 {
+		return names // No rotation needed for Sunday
+	}
+	// Rotate: take everything from startDay to end, then everything from start to startDay
+	return append(names[startDay:], names[:startDay]...)
 }

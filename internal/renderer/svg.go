@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/unkiwii/galendar/internal/calendar"
 	"github.com/unkiwii/galendar/internal/config"
@@ -12,11 +13,11 @@ import (
 
 // SVGRenderer handles SVG calendar generation
 type SVGRenderer struct {
-	config *config.Config
+	config config.Config
 }
 
 // NewSVGRenderer creates a new SVG renderer
-func NewSVGRenderer(cfg *config.Config) *SVGRenderer {
+func NewSVGRenderer(cfg config.Config) *SVGRenderer {
 	return &SVGRenderer{config: cfg}
 }
 
@@ -27,7 +28,7 @@ func (r *SVGRenderer) RenderMonth(cal *calendar.Calendar, outputPath string) err
 }
 
 // RenderYear renders a full year calendar, creating 12 separate SVG files
-func (r *SVGRenderer) RenderYear(year int, weekStart config.WeekStart, basePath string) error {
+func (r *SVGRenderer) RenderYear(year int, weekStart time.Weekday, basePath string) error {
 	// Remove extension if present
 	basePath = strings.TrimSuffix(basePath, filepath.Ext(basePath))
 
@@ -63,14 +64,14 @@ func (r *SVGRenderer) generateSVG(cal *calendar.Calendar) string {
 	sb.WriteString("\n")
 
 	// Title (Month Year)
-	monthFont := r.getFontFamily(r.config.FontMonth, "Arial")
+	monthFont := r.config.FontMonth
 	titleY := margin + 30
 	sb.WriteString(fmt.Sprintf(`  <text x="%d" y="%d" font-family="%s" font-size="32" font-weight="bold" fill="black">%s %d</text>`,
 		width/2, titleY, monthFont, cal.MonthName, cal.Year))
 	sb.WriteString("\n")
 
 	// Weekday headers
-	daysFont := r.getFontFamily(r.config.FontDays, "Arial")
+	daysFont := r.config.FontDays
 	cellWidth := (width - 2*margin) / 7
 	headerY := titleY + 40
 
@@ -88,6 +89,7 @@ func (r *SVGRenderer) generateSVG(cal *calendar.Calendar) string {
 
 	for weekIdx, week := range cal.Weeks {
 		for dayIdx, day := range week {
+
 			x := margin + dayIdx*cellWidth
 			y := gridStartY + weekIdx*rowHeight
 
@@ -95,13 +97,13 @@ func (r *SVGRenderer) generateSVG(cal *calendar.Calendar) string {
 			sb.WriteString(fmt.Sprintf(`  <rect x="%d" y="%d" width="%d" height="%d" fill="white" stroke="#c8c8c8" stroke-width="1"/>`,
 				x, y, cellWidth, rowHeight))
 			sb.WriteString("\n")
+			if !day.IsCurrentMonth {
+				// do not draw days outside the current month
+				continue
+			}
 
 			// Draw day number
 			textColor := "black"
-			if !day.IsCurrentMonth {
-				textColor = "#969696"
-			}
-
 			textX := x + 5
 			textY := y + 20
 			sb.WriteString(fmt.Sprintf(`  <text x="%d" y="%d" font-family="%s" font-size="12" fill="%s">%d</text>`,
@@ -112,22 +114,4 @@ func (r *SVGRenderer) generateSVG(cal *calendar.Calendar) string {
 
 	sb.WriteString("</svg>")
 	return sb.String()
-}
-
-// getFontFamily returns the font family to use in CSS
-func (r *SVGRenderer) getFontFamily(fontSpec, defaultFont string) string {
-	if fontSpec == "" {
-		return defaultFont
-	}
-
-	// Check if it's a file path
-	if _, err := os.Stat(fontSpec); err == nil {
-		// For SVG, we can reference custom fonts using @font-face
-		// For simplicity, we'll use the filename without extension as font name
-		// In a full implementation, we'd need to embed the font
-		return defaultFont
-	}
-
-	// Return as-is, assuming it's a system font name
-	return fontSpec
 }

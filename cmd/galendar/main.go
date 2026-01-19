@@ -19,7 +19,7 @@ func main() {
 		outputFlag     = flag.String("output", "pdf", "Output format: pdf or svg")
 		fontMonthFlag  = flag.String("font-month", "", "Font for month name (system font name or path to font file)")
 		fontDaysFlag   = flag.String("font-days", "", "Font for day numbers (system font name or path to font file)")
-		weekStartFlag  = flag.String("week-start", "sunday", "Week start day: sunday or monday")
+		weekStartFlag  = flag.String("week-start", "sunday", "Week start day: 0-6 (0=Sunday) or day name (sunday, monday, etc.)")
 		configFlag     = flag.String("config", "", "Path to JSON configuration file")
 		outputPathFlag = flag.String("o", "", "Output file path (directory for SVG year, file for PDF)")
 	)
@@ -37,41 +37,38 @@ func main() {
 	generateYear := *yearFlag != 0 && *monthFlag == 0
 
 	if generateYear {
-		year := cfg.GetYear()
-		if err := generateYearCalendar(cfg, year); err != nil {
+		if err := generateYearCalendar(cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "Error generating year calendar: %v\n", err)
 			os.Exit(1)
 		}
 	} else {
-		month := cfg.GetMonth()
-		year := cfg.GetYear()
-		if err := generateMonthCalendar(cfg, year, month); err != nil {
+		if err := generateMonthCalendar(cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "Error generating calendar: %v\n", err)
 			os.Exit(1)
 		}
 	}
 }
 
-func loadConfig(configPath string, monthFlag, yearFlag int, outputFlag, fontMonthFlag, fontDaysFlag, weekStartFlag, outputPathFlag string) (*config.Config, error) {
-	var cfg *config.Config
+func loadConfig(configPath string, monthFlag, yearFlag int, outputFlag, fontMonthFlag, fontDaysFlag, weekStartFlag, outputPathFlag string) (config.Config, error) {
+	var cfg config.Config
 
 	// Load from file if provided
 	if configPath != "" {
 		fileCfg, err := config.LoadFromFile(configPath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load config file: %w", err)
+			return config.Config{}, fmt.Errorf("failed to load config file: %w", err)
 		}
 		cfg = fileCfg
 	} else {
-		cfg = &config.Config{}
+		cfg = config.Default()
 	}
 
 	// Override with command-line flags (flags take precedence)
 	if monthFlag != 0 {
-		cfg.Month = &monthFlag
+		cfg.Month = monthFlag
 	}
 	if yearFlag != 0 {
-		cfg.Year = &yearFlag
+		cfg.Year = yearFlag
 	}
 	if outputFlag != "" {
 		cfg.Output = outputFlag
@@ -88,38 +85,34 @@ func loadConfig(configPath string, monthFlag, yearFlag int, outputFlag, fontMont
 
 	// Parse week start
 	if weekStartFlag != "" {
-		switch strings.ToLower(weekStartFlag) {
-		case "sunday", "sun":
-			cfg.WeekStart = config.Sunday
-		case "monday", "mon":
-			cfg.WeekStart = config.Monday
-		default:
-			return nil, fmt.Errorf("invalid week-start: %s (must be 'sunday' or 'monday')", weekStartFlag)
+		weekStart, err := config.ParseWeekStart(weekStartFlag)
+		if err != nil {
+			return config.Config{}, fmt.Errorf("invalid week-start: %w", err)
 		}
+		cfg.WeekStart = weekStart
 	}
 
 	return cfg, nil
 }
 
-func generateMonthCalendar(cfg *config.Config, year, month int) error {
-	cal, err := calendar.NewCalendar(year, month, cfg.GetWeekStart())
+func generateMonthCalendar(cfg config.Config) error {
+	cal, err := calendar.NewCalendar(cfg.Year, cfg.Month, cfg.WeekStart)
 	if err != nil {
 		return fmt.Errorf("failed to create calendar: %w", err)
 	}
 
-	outputFormat := cfg.GetOutputFormat()
 	outputPath := cfg.OutputPath
 
 	// Generate default output path if not provided
 	if outputPath == "" {
 		ext := ".pdf"
-		if outputFormat == "svg" {
+		if cfg.Output == "svg" {
 			ext = ".svg"
 		}
-		outputPath = fmt.Sprintf("calendar-%04d-%02d%s", year, month, ext)
+		outputPath = fmt.Sprintf("calendar-%04d-%02d%s", cfg.Year, cfg.Month, ext)
 	}
 
-	switch outputFormat {
+	switch cfg.Output {
 	case "pdf":
 		pdfRenderer := renderer.NewPDFRenderer(cfg)
 		return pdfRenderer.RenderMonth(cal, outputPath)
@@ -127,33 +120,32 @@ func generateMonthCalendar(cfg *config.Config, year, month int) error {
 		svgRenderer := renderer.NewSVGRenderer(cfg)
 		return svgRenderer.RenderMonth(cal, outputPath)
 	default:
-		return fmt.Errorf("unsupported output format: %s (must be 'pdf' or 'svg')", outputFormat)
+		return fmt.Errorf("unsupported output format: %s (must be 'pdf' or 'svg')", cfg.Output)
 	}
 }
 
-func generateYearCalendar(cfg *config.Config, year int) error {
-	outputFormat := cfg.GetOutputFormat()
+func generateYearCalendar(cfg config.Config) error {
 	outputPath := cfg.OutputPath
 
 	// Generate default output path if not provided
 	if outputPath == "" {
-		if outputFormat == "pdf" {
-			outputPath = fmt.Sprintf("calendar-%04d.pdf", year)
+		if cfg.Output == "pdf" {
+			outputPath = fmt.Sprintf("calendar-%04d.pdf", cfg.Year)
 		} else {
-			outputPath = fmt.Sprintf("calendar-%04d", year)
+			outputPath = fmt.Sprintf("calendar-%04d", cfg.Year)
 		}
 	}
 
-	switch outputFormat {
+	switch cfg.Output {
 	case "pdf":
 		pdfRenderer := renderer.NewPDFRenderer(cfg)
-		return pdfRenderer.RenderYear(year, cfg.GetWeekStart(), outputPath)
+		return pdfRenderer.RenderYear(cfg.Year, cfg.WeekStart, outputPath)
 	case "svg":
 		svgRenderer := renderer.NewSVGRenderer(cfg)
 		// For SVG, outputPath should be a base path (without extension)
 		basePath := strings.TrimSuffix(outputPath, filepath.Ext(outputPath))
-		return svgRenderer.RenderYear(year, cfg.GetWeekStart(), basePath)
+		return svgRenderer.RenderYear(cfg.Year, cfg.WeekStart, basePath)
 	default:
-		return fmt.Errorf("unsupported output format: %s (must be 'pdf' or 'svg')", outputFormat)
+		return fmt.Errorf("unsupported output format: %s (must be 'pdf' or 'svg')", cfg.Output)
 	}
 }
