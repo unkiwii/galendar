@@ -1,1 +1,3 @@
-./galendar
+/galendar
+*.pdf
+*.svg
