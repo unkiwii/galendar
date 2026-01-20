@@ -1,44 +1,42 @@
-package renderer
+package galendar
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/jung-kurt/gofpdf"
-	"github.com/unkiwii/galendar/internal/calendar"
-	"github.com/unkiwii/galendar/internal/config"
 )
 
-// PDFRenderer handles PDF calendar generation
-type PDFRenderer struct {
-	config config.Config
+// Renderer handles PDF calendar generation
+type PDFRenderer struct{}
+
+func init() {
+	RegisterRenderer(PDFRenderer{})
 }
 
-// NewPDFRenderer creates a new PDF renderer
-func NewPDFRenderer(cfg config.Config) *PDFRenderer {
-	return &PDFRenderer{config: cfg}
+func (r PDFRenderer) Name() string {
+	return "pdf"
 }
 
 // RenderMonth renders a single month calendar to PDF
-func (r *PDFRenderer) RenderMonth(cal *calendar.Calendar, outputPath string) error {
+func (r PDFRenderer) RenderMonth(config Config, cal *Calendar) error {
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
 
-	monthFont := r.config.FontMonth
-	daysFont := r.config.FontDays
+	monthFont := config.FontMonth
+	daysFont := config.FontDays
 
 	// Render the month
 	r.renderMonthPage(pdf, cal, monthFont, daysFont)
 
-	return pdf.OutputFileAndClose(outputPath)
+	return pdf.OutputFileAndClose(config.MonthOutputFilePath(cal))
 }
 
 // RenderYear renders a full year calendar (12 months) to a single PDF
-func (r *PDFRenderer) RenderYear(year int, weekStart time.Weekday, outputPath string) error {
+func (r PDFRenderer) RenderYear(config Config, cal *Calendar) error {
 	pdf := gofpdf.New("P", "mm", "A4", "")
 
-	monthFont := r.config.FontMonth
-	daysFont := r.config.FontDays
+	monthFont := config.FontMonth
+	daysFont := config.FontDays
 
 	// Render each month on a separate page
 	for month := 1; month <= 12; month++ {
@@ -46,7 +44,7 @@ func (r *PDFRenderer) RenderYear(year int, weekStart time.Weekday, outputPath st
 			pdf.AddPage()
 		}
 
-		cal, err := calendar.NewCalendar(year, month, weekStart)
+		cal, err := NewCalendar(cal.Year, month, cal.WeekStart)
 		if err != nil {
 			return fmt.Errorf("failed to create calendar for month %d: %w", month, err)
 		}
@@ -54,11 +52,11 @@ func (r *PDFRenderer) RenderYear(year int, weekStart time.Weekday, outputPath st
 		r.renderMonthPage(pdf, cal, monthFont, daysFont)
 	}
 
-	return pdf.OutputFileAndClose(outputPath)
+	return pdf.OutputFileAndClose(config.YearOutputFilePath())
 }
 
 // renderMonthPage renders a single month page
-func (r *PDFRenderer) renderMonthPage(pdf *gofpdf.Fpdf, cal *calendar.Calendar, monthFont, daysFont string) {
+func (r *PDFRenderer) renderMonthPage(pdf *gofpdf.Fpdf, month *Calendar, monthFont, daysFont string) {
 	pageWidth, pageHeight := pdf.GetPageSize()
 	margin := 20.0
 	contentWidth := pageWidth - 2*margin
@@ -66,14 +64,14 @@ func (r *PDFRenderer) renderMonthPage(pdf *gofpdf.Fpdf, cal *calendar.Calendar, 
 
 	// Title (Month Year)
 	pdf.SetFont(monthFont, "B", 24)
-	title := fmt.Sprintf("%s %d", cal.MonthName, cal.Year)
+	title := fmt.Sprintf("%s %d", month.MonthName, month.Year)
 	titleWidth := pdf.GetStringWidth(title)
 	pdf.SetXY(margin, margin)
 	pdf.Cell(titleWidth, 15, title)
 
 	// Weekday headers
 	pdf.SetFont(daysFont, "B", 12)
-	weekdayNames := calendar.GetWeekdayAbbreviations(cal.WeekStart)
+	weekdayNames := GetWeekdayAbbreviations(month.WeekStart)
 	cellWidth := contentWidth / 7
 	cellHeight := 10.0
 	headerY := margin + 25
@@ -89,7 +87,7 @@ func (r *PDFRenderer) renderMonthPage(pdf *gofpdf.Fpdf, cal *calendar.Calendar, 
 	gridStartY := headerY + cellHeight + 5
 	rowHeight := (contentHeight - (gridStartY - margin)) / 6
 
-	for weekIdx, week := range cal.Weeks {
+	for weekIdx, week := range month.Weeks {
 		for dayIdx, day := range week {
 			x := margin + float64(dayIdx)*cellWidth
 			y := gridStartY + float64(weekIdx)*rowHeight

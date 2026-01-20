@@ -1,47 +1,37 @@
-package renderer
+package galendar
 
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
-	"time"
-
-	"github.com/unkiwii/galendar/internal/calendar"
-	"github.com/unkiwii/galendar/internal/config"
 )
 
 // SVGRenderer handles SVG calendar generation
-type SVGRenderer struct {
-	config config.Config
+type SVGRenderer struct{}
+
+func init() {
+	RegisterRenderer(SVGRenderer{})
 }
 
-// NewSVGRenderer creates a new SVG renderer
-func NewSVGRenderer(cfg config.Config) *SVGRenderer {
-	return &SVGRenderer{config: cfg}
+func (r SVGRenderer) Name() string {
+	return "svg"
 }
 
 // RenderMonth renders a single month calendar to SVG
-func (r *SVGRenderer) RenderMonth(cal *calendar.Calendar, outputPath string) error {
-	svg := r.generateSVG(cal)
-	return os.WriteFile(outputPath, []byte(svg), 0644)
+func (r SVGRenderer) RenderMonth(config Config, cal *Calendar) error {
+	svg := r.generateSVG(config, cal)
+	return os.WriteFile(config.MonthOutputFilePath(cal), []byte(svg), 0644)
 }
 
 // RenderYear renders a full year calendar, creating 12 separate SVG files
-func (r *SVGRenderer) RenderYear(year int, weekStart time.Weekday, basePath string) error {
-	// Remove extension if present
-	basePath = strings.TrimSuffix(basePath, filepath.Ext(basePath))
-
+func (r SVGRenderer) RenderYear(config Config, cal *Calendar) error {
 	for month := 1; month <= 12; month++ {
-		cal, err := calendar.NewCalendar(year, month, weekStart)
+		cal, err := NewCalendar(cal.Year, month, cal.WeekStart)
 		if err != nil {
 			return fmt.Errorf("failed to create calendar for month %d: %w", month, err)
 		}
 
-		// Generate filename: basePath-YYYY-MM.svg
-		outputPath := fmt.Sprintf("%s-%04d-%02d.svg", basePath, year, month)
-
-		if err := r.RenderMonth(cal, outputPath); err != nil {
+		if err := r.RenderMonth(config, cal); err != nil {
 			return fmt.Errorf("failed to render month %d: %w", month, err)
 		}
 	}
@@ -50,7 +40,8 @@ func (r *SVGRenderer) RenderYear(year int, weekStart time.Weekday, basePath stri
 }
 
 // generateSVG generates the SVG content for a calendar
-func (r *SVGRenderer) generateSVG(cal *calendar.Calendar) string {
+// TODO: change return type to []byte
+func (r SVGRenderer) generateSVG(config Config, cal *Calendar) string {
 	width := 800
 	height := 600
 	margin := 40
@@ -64,18 +55,18 @@ func (r *SVGRenderer) generateSVG(cal *calendar.Calendar) string {
 	sb.WriteString("\n")
 
 	// Title (Month Year)
-	monthFont := r.config.FontMonth
+	monthFont := config.FontMonth
 	titleY := margin + 30
 	sb.WriteString(fmt.Sprintf(`  <text x="%d" y="%d" font-family="%s" font-size="32" font-weight="bold" fill="black">%s %d</text>`,
 		width/2, titleY, monthFont, cal.MonthName, cal.Year))
 	sb.WriteString("\n")
 
 	// Weekday headers
-	daysFont := r.config.FontDays
+	daysFont := config.FontDays
 	cellWidth := (width - 2*margin) / 7
 	headerY := titleY + 40
 
-	weekdayNames := calendar.GetWeekdayAbbreviations(cal.WeekStart)
+	weekdayNames := GetWeekdayAbbreviations(cal.WeekStart)
 	for i, dayName := range weekdayNames {
 		x := margin + i*cellWidth + cellWidth/2
 		sb.WriteString(fmt.Sprintf(`  <text x="%d" y="%d" font-family="%s" font-size="14" font-weight="bold" text-anchor="middle" fill="black">%s</text>`,

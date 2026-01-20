@@ -1,10 +1,11 @@
-package calendar
+package galendar
 
 import (
 	"fmt"
 	"time"
 )
 
+// TODO: change Calendar name to Month
 // Calendar represents a calendar for a given month
 type Calendar struct {
 	Year      int
