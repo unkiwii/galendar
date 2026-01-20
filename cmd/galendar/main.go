@@ -19,30 +19,35 @@ func main() {
 }
 
 func run() error {
-	now := time.Now()
-
-	pflag.IntP("month", "m", 0, "Month: 1-12 to render the month, 0 (or missing) to render the whole year")
-	pflag.IntP("year", "y", now.Year(), "Year")
-	pflag.String("renderer", galendar.DefaultRenderer().Name(), "Output format: pdf or svg")
-	pflag.String("font-month", galendar.DefaultFont, "Font for month name (system font name or path to font file)")
-	pflag.String("font-days", galendar.DefaultFont, "Font for day numbers (system font name or path to font file)")
-	pflag.String("week-start", galendar.DefaultWeekStart.String(), "Week start day: 0-6 (0=Sunday) or day name (sunday, monday, etc.)")
-	pflag.String("config", "", "Path to JSON configuration file")
-	pflag.StringP("output-dir", "o", "", "Output directory, defaults to current directory")
-	pflag.Parse()
-
-	currentDir, err := os.Getwd()
+	defaultOutputDir, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("can't read working directory: %w", err)
 	}
 
-	viper.SetDefault("month", 0)
-	viper.SetDefault("year", now.Year())
-	viper.SetDefault("renderer", "pdf")
-	viper.SetDefault("font-month", "Arial")
-	viper.SetDefault("font-days", "Arial")
-	viper.SetDefault("week-start", "sunday")
-	viper.SetDefault("output-dir", currentDir)
+	defaultMonth := 0
+	defaultYear := time.Now().Year()
+	defaultRenderer := galendar.DefaultRenderer().Name()
+	defaultFont := galendar.DefaultFont
+	defaultWeekStart := galendar.DefaultWeekStart.String()
+
+	pflag.IntP("month", "m", defaultMonth, "Month: 1-12 to render the month, 0 (or missing) to render the whole year")
+	pflag.IntP("year", "y", defaultYear, "Year")
+	pflag.String("renderer", defaultRenderer, "Output format: pdf or svg")
+	pflag.String("font-month", defaultFont, "Font for month name (system font name or path to font file)")
+	pflag.String("font-days", defaultFont, "Font for day numbers (system font name or path to font file)")
+	pflag.String("font-notes", defaultFont, "Font for notes (system font name or path to font file)")
+	pflag.String("week-start", defaultWeekStart, "Week start day: 0-6 (0=Sunday) or day name (sunday, monday, etc.)")
+	pflag.String("config", "", "Path to JSON configuration file")
+	pflag.StringP("output-dir", "o", "", "Output directory, defaults to current directory")
+	pflag.Parse()
+
+	viper.SetDefault("month", defaultMonth)
+	viper.SetDefault("year", defaultYear)
+	viper.SetDefault("renderer", defaultRenderer)
+	viper.SetDefault("font-month", defaultFont)
+	viper.SetDefault("font-days", defaultFont)
+	viper.SetDefault("week-start", defaultWeekStart)
+	viper.SetDefault("output-dir", defaultOutputDir)
 
 	viper.SetEnvPrefix("galendar")
 	viper.AutomaticEnv()

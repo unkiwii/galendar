@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	DefaultFont      = "monospace"
+	DefaultFont      = "FreeSans"
 	DefaultWeekStart = time.Sunday
 )
 
