@@ -22,6 +22,7 @@ type Config struct {
 	WeekStart time.Weekday // 0-6, representing Sunday through Saturday
 	FontMonth string       // Font name or path for month
 	FontDays  string       // Font name or path for days
+	FontNotes string       // Font name or path for notes
 	Renderer  Renderer     // "pdf" or "svg", default "pdf"
 	OutputDir string       // Output directory name
 }
@@ -84,6 +85,7 @@ func NewConfig(v *viper.Viper) (Config, error) {
 		WeekStart: weekStart,
 		FontMonth: viper.GetString("font-month"),
 		FontDays:  viper.GetString("font-days"),
+		FontNotes: viper.GetString("font-notes"),
 		Renderer:  renderer,
 		OutputDir: outputDir,
 	}, nil

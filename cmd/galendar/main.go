@@ -46,6 +46,7 @@ func run() error {
 	viper.SetDefault("renderer", defaultRenderer)
 	viper.SetDefault("font-month", defaultFont)
 	viper.SetDefault("font-days", defaultFont)
+	viper.SetDefault("font-notes", defaultFont)
 	viper.SetDefault("week-start", defaultWeekStart)
 	viper.SetDefault("output-dir", defaultOutputDir)
 
