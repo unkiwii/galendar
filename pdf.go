@@ -33,16 +33,14 @@ func (r PDFRenderer) RenderMonth(config Config, cal *Calendar) error {
 
 // RenderYear renders a full year calendar (12 months) to a single PDF
 func (r PDFRenderer) RenderYear(config Config, cal *Calendar) error {
-	pdf := gofpdf.New("P", "mm", "A4", "")
+	pdf := gofpdf.New("L", "mm", "A4", "")
 
 	monthFont := config.FontMonth
 	daysFont := config.FontDays
 
 	// Render each month on a separate page
 	for month := 1; month <= 12; month++ {
-		if month > 1 {
-			pdf.AddPage()
-		}
+		pdf.AddPage()
 
 		cal, err := NewCalendar(cal.Year, month, cal.WeekStart)
 		if err != nil {
