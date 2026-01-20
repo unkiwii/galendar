@@ -10,7 +10,6 @@ import (
 type Calendar struct {
 	Year      int
 	Month     int
-	MonthName string
 	Weeks     [][]Day
 	WeekStart time.Weekday
 }
@@ -31,7 +30,6 @@ func NewCalendar(year, month int, weekStart time.Weekday) (*Calendar, error) {
 	cal := &Calendar{
 		Year:      year,
 		Month:     month,
-		MonthName: time.Month(month).String(),
 		WeekStart: weekStart,
 	}
 
@@ -89,28 +87,4 @@ func NewCalendar(year, month int, weekStart time.Weekday) (*Calendar, error) {
 
 	cal.Weeks = weeks
 	return cal, nil
-}
-
-// GetWeekdayNames returns the names of weekdays based on week start
-func GetWeekdayNames(weekStart time.Weekday) []string {
-	names := []string{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"}
-	return rotateWeekdays(names, int(weekStart))
-}
-
-// GetWeekdayAbbreviations returns abbreviated weekday names
-func GetWeekdayAbbreviations(weekStart time.Weekday) []string {
-	names := []string{"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"}
-	return rotateWeekdays(names, int(weekStart))
-}
-
-// rotateWeekdays rotates the weekday names array to start with the specified day
-func rotateWeekdays(names []string, startDay int) []string {
-	if startDay < 0 || startDay > 6 {
-		startDay = 0 // Default to Sunday if invalid
-	}
-	if startDay == 0 {
-		return names // No rotation needed for Sunday
-	}
-	// Rotate: take everything from startDay to end, then everything from start to startDay
-	return append(names[startDay:], names[:startDay]...)
 }

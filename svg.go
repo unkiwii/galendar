@@ -58,7 +58,7 @@ func (r SVGRenderer) generateSVG(config Config, cal *Calendar) string {
 	monthFont := config.FontMonth
 	titleY := margin + 30
 	sb.WriteString(fmt.Sprintf(`  <text x="%d" y="%d" font-family="%s" font-size="32" font-weight="bold" fill="black">%s %d</text>`,
-		width/2, titleY, monthFont, cal.MonthName, cal.Year))
+		width/2, titleY, monthFont, config.Language.MonthName(cal.Month), cal.Year))
 	sb.WriteString("\n")
 
 	// Weekday headers
@@ -66,7 +66,7 @@ func (r SVGRenderer) generateSVG(config Config, cal *Calendar) string {
 	cellWidth := (width - 2*margin) / 7
 	headerY := titleY + 40
 
-	weekdayNames := GetWeekdayAbbreviations(cal.WeekStart)
+	weekdayNames := config.Language.WeekdayAbbreviations(cal.WeekStart)
 	for i, dayName := range weekdayNames {
 		x := margin + i*cellWidth + cellWidth/2
 		sb.WriteString(fmt.Sprintf(`  <text x="%d" y="%d" font-family="%s" font-size="14" font-weight="bold" text-anchor="middle" fill="black">%s</text>`,

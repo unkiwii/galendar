@@ -26,9 +26,10 @@ func run() error {
 
 	defaultMonth := 0
 	defaultYear := time.Now().Year()
-	defaultRenderer := galendar.DefaultRenderer().Name()
-	defaultFont := galendar.DefaultFont
-	defaultWeekStart := galendar.DefaultWeekStart.String()
+	defaultRenderer := galendar.PDFRenderer{}.Name()
+	defaultFont := "courier"
+	defaultWeekStart := time.Sunday.String()
+	defaultLanguage := "es"
 
 	pflag.IntP("month", "m", defaultMonth, "Month: 1-12 to render the month, 0 (or missing) to render the whole year")
 	pflag.IntP("year", "y", defaultYear, "Year")
@@ -39,6 +40,8 @@ func run() error {
 	pflag.String("week-start", defaultWeekStart, "Week start day: 0-6 (0=Sunday) or day name (sunday, monday, etc.)")
 	pflag.String("config", "", "Path to JSON configuration file")
 	pflag.StringP("output-dir", "o", "", "Output directory, defaults to current directory")
+	pflag.Bool("show-extra-days", false, "Show days outside current month, defaults to false")
+	pflag.StringP("language", "l", defaultLanguage, "Language to use when rendering the calendar, defaults to es (Spanish)")
 	pflag.Parse()
 
 	viper.SetDefault("month", defaultMonth)
@@ -49,6 +52,8 @@ func run() error {
 	viper.SetDefault("font-notes", defaultFont)
 	viper.SetDefault("week-start", defaultWeekStart)
 	viper.SetDefault("output-dir", defaultOutputDir)
+	viper.SetDefault("show-extra-days", false)
+	viper.SetDefault("language", defaultLanguage)
 
 	viper.SetEnvPrefix("galendar")
 	viper.AutomaticEnv()
