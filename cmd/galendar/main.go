@@ -21,14 +21,14 @@ func main() {
 func run() error {
 	now := time.Now()
 
-	pflag.Int("month", 0, "Month: 1-12 to render the month, 0 (or missing) to render the whole year")
-	pflag.Int("year", now.Year(), "Year")
+	pflag.IntP("month", "m", 0, "Month: 1-12 to render the month, 0 (or missing) to render the whole year")
+	pflag.IntP("year", "y", now.Year(), "Year")
 	pflag.String("renderer", galendar.DefaultRenderer().Name(), "Output format: pdf or svg")
 	pflag.String("font-month", galendar.DefaultFont, "Font for month name (system font name or path to font file)")
 	pflag.String("font-days", galendar.DefaultFont, "Font for day numbers (system font name or path to font file)")
 	pflag.String("week-start", galendar.DefaultWeekStart.String(), "Week start day: 0-6 (0=Sunday) or day name (sunday, monday, etc.)")
 	pflag.String("config", "", "Path to JSON configuration file")
-	pflag.String("output-dir", "", "Output directory, defaults to current directory")
+	pflag.StringP("output-dir", "o", "", "Output directory, defaults to current directory")
 	pflag.Parse()
 
 	currentDir, err := os.Getwd()
