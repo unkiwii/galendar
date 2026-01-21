@@ -15,18 +15,25 @@ const (
 	DefaultWeekStart = time.Sunday
 )
 
+const (
+	FontMonths   = "font-months"
+	FontWeekdays = "font-weekdays"
+	FontDays     = "font-days"
+	FontNotes    = "font-notes"
+)
+
+var AllFonts = []string{FontMonths, FontWeekdays, FontDays, FontNotes}
+
 // Config holds the application configuration with all values already resolved
 type Config struct {
-	Month         int          // 1-12, 0 means current month
-	Year          int          // 0 means current year
-	WeekStart     time.Weekday // 0-6, representing Sunday through Saturday
-	FontMonth     string       // Font name or path for month
-	FontDays      string       // Font name or path for days
-	FontNotes     string       // Font name or path for notes
-	Renderer      Renderer     // "pdf" or "svg", default "pdf"
-	OutputDir     string       // Output directory name
-	ShowExtraDays bool         // show days outside current month (defaults to false)
-	Language      Language     // language to use on the output (defaults to Spanish)
+	Month         int               // 1-12, 0 means current month
+	Year          int               // 0 means current year
+	WeekStart     time.Weekday      // 0-6, representing Sunday through Saturday
+	Renderer      Renderer          // "pdf" or "svg", default "pdf"
+	OutputDir     string            // Output directory name
+	ShowExtraDays bool              // show days outside current month (defaults to false)
+	Language      Language          // language to use on the output (defaults to Spanish)
+	Fonts         map[string]string // Fonts to use by name
 }
 
 var weekdayStringToWeekday = map[string]time.Weekday{
@@ -86,17 +93,20 @@ func NewConfig(v *viper.Viper) (Config, error) {
 		return Config{}, fmt.Errorf("invalid language: %q", language)
 	}
 
+	fonts := map[string]string{}
+	for _, font := range AllFonts {
+		fonts[font] = viper.GetString(font)
+	}
+
 	return Config{
 		Month:         viper.GetInt("month"),
 		Year:          viper.GetInt("year"),
 		WeekStart:     weekStart,
-		FontMonth:     viper.GetString("font-month"),
-		FontDays:      viper.GetString("font-days"),
-		FontNotes:     viper.GetString("font-notes"),
 		Renderer:      renderer,
 		OutputDir:     outputDir,
 		ShowExtraDays: viper.GetBool("show-extra-days"),
 		Language:      language,
+		Fonts:         fonts,
 	}, nil
 }
 

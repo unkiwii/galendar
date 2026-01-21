@@ -22,26 +22,30 @@ func (r PDFRenderer) Name() string {
 	return "pdf"
 }
 
-// RenderMonth renders a single month calendar to PDF
-func (r PDFRenderer) RenderMonth(config Config, cal *Calendar) error {
+func (r PDFRenderer) createDocument(config Config) (*gofpdf.Fpdf, error) {
 	fontDir := getSystemFontDir()
 	pdf := gofpdf.New("L", "mm", "A4", fontDir)
 
-	// Register fonts before adding pages
-	if err := r.registerFont(pdf, "month", config.FontMonth); err != nil {
-		return fmt.Errorf("failed to register month font: %w", err)
+	for _, name := range AllFonts {
+		font := config.Fonts[name]
+		if err := r.registerFont(config, pdf, name, font); err != nil {
+			return nil, fmt.Errorf("failed to register font %s: %w", name, err)
+		}
 	}
-	if err := r.registerFont(pdf, "days", config.FontDays); err != nil {
-		return fmt.Errorf("failed to register days font: %w", err)
+
+	return pdf, nil
+}
+
+// RenderMonth renders a single month calendar to PDF
+func (r PDFRenderer) RenderMonth(config Config, cal *Calendar) error {
+	pdf, err := r.createDocument(config)
+	if err != nil {
+		return fmt.Errorf("can't create document: %w", err)
 	}
 
-	monthFont := r.getFontName("month", config.FontMonth)
-	daysFont := r.getFontName("days", config.FontDays)
+	r.renderMonthPage(config, pdf, cal)
 
-	// Render the month
-	r.renderMonthPage(config, pdf, cal, monthFont, daysFont)
-
-	err := pdf.OutputFileAndClose(config.MonthOutputFilePath(cal))
+	err = pdf.OutputFileAndClose(config.MonthOutputFilePath(cal))
 	if err != nil {
 		return fmt.Errorf("can't output file: %w", err)
 	}
@@ -51,19 +55,10 @@ func (r PDFRenderer) RenderMonth(config Config, cal *Calendar) error {
 
 // RenderYear renders a full year calendar (12 months) to a single PDF
 func (r PDFRenderer) RenderYear(config Config, cal *Calendar) error {
-	fontDir := getSystemFontDir()
-	pdf := gofpdf.New("L", "mm", "A4", fontDir)
-
-	// Register fonts before adding pages
-	if err := r.registerFont(pdf, "month", config.FontMonth); err != nil {
-		return fmt.Errorf("failed to register month font: %w", err)
+	pdf, err := r.createDocument(config)
+	if err != nil {
+		return fmt.Errorf("can't create document: %w", err)
 	}
-	if err := r.registerFont(pdf, "days", config.FontDays); err != nil {
-		return fmt.Errorf("failed to register days font: %w", err)
-	}
-
-	monthFont := r.getFontName("month", config.FontMonth)
-	daysFont := r.getFontName("days", config.FontDays)
 
 	// Render each month on a separate page
 	for month := 1; month <= 12; month++ {
@@ -72,10 +67,10 @@ func (r PDFRenderer) RenderYear(config Config, cal *Calendar) error {
 			return fmt.Errorf("failed to create calendar for month %d: %w", month, err)
 		}
 
-		r.renderMonthPage(config, pdf, cal, monthFont, daysFont)
+		r.renderMonthPage(config, pdf, cal)
 	}
 
-	err := pdf.OutputFileAndClose(config.YearOutputFilePath())
+	err = pdf.OutputFileAndClose(config.YearOutputFilePath())
 	if err != nil {
 		return fmt.Errorf("can't output file: %w", err)
 	}
@@ -84,7 +79,7 @@ func (r PDFRenderer) RenderYear(config Config, cal *Calendar) error {
 }
 
 // renderMonthPage renders a single month page
-func (r *PDFRenderer) renderMonthPage(config Config, pdf *gofpdf.Fpdf, cal *Calendar, monthFont, daysFont string) {
+func (r *PDFRenderer) renderMonthPage(config Config, pdf *gofpdf.Fpdf, cal *Calendar) {
 	pdf.AddPage()
 
 	pageWidth, pageHeight := pdf.GetPageSize()
@@ -93,7 +88,7 @@ func (r *PDFRenderer) renderMonthPage(config Config, pdf *gofpdf.Fpdf, cal *Cale
 	contentHeight := pageHeight - 2*margin
 
 	// Title (Month Year)
-	pdf.SetFont(monthFont, "B", 24)
+	pdf.SetFont(r.getFontName(config, FontMonths), "B", 24)
 	pdf.SetTextColor(0, 0, 0)
 	title := fmt.Sprintf("%s %d", config.Language.MonthName(cal.Month), cal.Year)
 	titleWidth := pdf.GetStringWidth(title)
@@ -101,7 +96,7 @@ func (r *PDFRenderer) renderMonthPage(config Config, pdf *gofpdf.Fpdf, cal *Cale
 	pdf.Cell(titleWidth, 15, title)
 
 	// Weekday headers
-	pdf.SetFont(daysFont, "B", 22)
+	pdf.SetFont(r.getFontName(config, FontWeekdays), "B", 22)
 	pdf.SetTextColor(0, 0, 0)
 	weekdayNames := config.Language.WeekdayAbbreviations(cal.WeekStart)
 	cellWidth := contentWidth / 7
@@ -118,10 +113,11 @@ func (r *PDFRenderer) renderMonthPage(config Config, pdf *gofpdf.Fpdf, cal *Cale
 	}
 
 	// Calendar grid
-	pdf.SetFont(daysFont, "", 10)
+	pdf.SetFont(r.getFontName(config, FontDays), "", 20)
 	pdf.SetTextColor(0, 0, 0)
 	gridStartY := headerY + cellHeight
-	rowHeight := (contentHeight - (gridStartY - margin)) / 6
+	rows := 6 // TODO: calculate this and move things accordingly
+	rowHeight := (contentHeight - (gridStartY - margin)) / float64(rows)
 
 	for weekIdx, week := range cal.Weeks {
 		for dayIdx, day := range week {
@@ -129,10 +125,8 @@ func (r *PDFRenderer) renderMonthPage(config Config, pdf *gofpdf.Fpdf, cal *Cale
 			y := gridStartY + float64(weekIdx)*rowHeight
 
 			// Draw cell border
-			pdf.SetDrawColor(200, 200, 200)
+			pdf.SetDrawColor(150, 150, 150)
 			pdf.Rect(x, y, cellWidth, rowHeight, "D")
-
-			pdf.SetTextColor(0, 0, 0)
 
 			if !day.IsCurrentMonth {
 				if !config.ShowExtraDays {
@@ -140,23 +134,33 @@ func (r *PDFRenderer) renderMonthPage(config Config, pdf *gofpdf.Fpdf, cal *Cale
 				} else {
 					pdf.SetTextColor(200, 200, 200)
 				}
+			} else {
+				pdf.SetTextColor(0, 0, 0)
 			}
 
+			// Draw number box
+			pdf.Rect(x, y, cellWidth/3, rowHeight/2, "D")
+
 			// Draw day number
-			pdf.SetXY(x+2, y+2)
-			pdf.Cell(cellWidth-4, rowHeight-4, fmt.Sprintf("%d", day.DayNumber))
+			day := fmt.Sprintf("%d", day.DayNumber)
+			numberWidth := pdf.GetStringWidth(day)
+			if len(day) >= 2 {
+				numberWidth = 0
+			}
+			pdf.SetXY(x+1+(numberWidth/2), y-(rowHeight/2)+8)
+			pdf.Cell(cellWidth-4, rowHeight-4, day)
 		}
 	}
 }
 
 // registerFont registers a font with gofpdf, supporting both font files and built-in fonts
-func (r *PDFRenderer) registerFont(pdf *gofpdf.Fpdf, fontKey, fontSpec string) error {
+func (r PDFRenderer) registerFont(config Config, pdf *gofpdf.Fpdf, fontKey, fontSpec string) error {
 	// It's a file path - try to register it as a TTF font
 	ext := strings.ToLower(filepath.Ext(fontSpec))
 	if ext == ".ttf" || ext == ".otf" {
 		// Use AddUTF8Font to register TTF/OTF fonts
 		// The font will be registered with the key we provide
-		fontName := r.getFontName(fontKey, fontSpec)
+		fontName := r.getFontName(config, fontKey)
 		pdf.AddUTF8Font(fontName, "", fontSpec)
 		return pdf.Error()
 	}
@@ -176,27 +180,25 @@ func (r *PDFRenderer) registerFont(pdf *gofpdf.Fpdf, fontKey, fontSpec string) e
 }
 
 // getFontName returns the font name to use with SetFont
-func (r *PDFRenderer) getFontName(fontKey, fontSpec string) string {
-	// Check if it's a file path
+func (r PDFRenderer) getFontName(config Config, fontName string) string {
+	fontSpec := config.Fonts[fontName]
+
 	ext := strings.ToLower(filepath.Ext(fontSpec))
 	if ext == ".ttf" || ext == ".otf" {
-		// Return the registered font name (based on the key)
-		return fontKey
+		return fontName
 	}
 
-	// Map to built-in font or use the spec as-is
 	builtIn := r.mapToBuiltInFont(fontSpec)
 	if builtIn != "" {
 		return builtIn
 	}
 
-	// Fallback to Helvetica
 	return "Helvetica"
 }
 
 // mapToBuiltInFont maps common font names to gofpdf built-in fonts
 // gofpdf built-in fonts: Courier, Helvetica, Times, Symbol, ZapfDingbats
-func (r *PDFRenderer) mapToBuiltInFont(fontName string) string {
+func (r PDFRenderer) mapToBuiltInFont(fontName string) string {
 	fontLower := strings.ToLower(strings.TrimSpace(fontName))
 
 	// Map common font names to gofpdf built-ins

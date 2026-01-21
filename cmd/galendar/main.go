@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -34,22 +35,24 @@ func run() error {
 	pflag.IntP("month", "m", defaultMonth, "Month: 1-12 to render the month, 0 (or missing) to render the whole year")
 	pflag.IntP("year", "y", defaultYear, "Year")
 	pflag.String("renderer", defaultRenderer, "Output format: pdf or svg")
-	pflag.String("font-month", defaultFont, "Font for month name (system font name or path to font file)")
-	pflag.String("font-days", defaultFont, "Font for day numbers (system font name or path to font file)")
-	pflag.String("font-notes", defaultFont, "Font for notes (system font name or path to font file)")
 	pflag.String("week-start", defaultWeekStart, "Week start day: 0-6 (0=Sunday) or day name (sunday, monday, etc.)")
 	pflag.String("config", "", "Path to JSON configuration file")
 	pflag.StringP("output-dir", "o", "", "Output directory, defaults to current directory")
 	pflag.Bool("show-extra-days", false, "Show days outside current month, defaults to false")
 	pflag.StringP("language", "l", defaultLanguage, "Language to use when rendering the calendar, defaults to es (Spanish)")
+
+	for _, font := range galendar.AllFonts {
+		entity := strings.TrimPrefix(font, "font-")
+		doc := fmt.Sprintf("Font for %s (system font name or path to font file)", entity)
+		pflag.String(font, defaultFont, doc)
+		viper.SetDefault(font, defaultFont)
+	}
+
 	pflag.Parse()
 
 	viper.SetDefault("month", defaultMonth)
 	viper.SetDefault("year", defaultYear)
 	viper.SetDefault("renderer", defaultRenderer)
-	viper.SetDefault("font-month", defaultFont)
-	viper.SetDefault("font-days", defaultFont)
-	viper.SetDefault("font-notes", defaultFont)
 	viper.SetDefault("week-start", defaultWeekStart)
 	viper.SetDefault("output-dir", defaultOutputDir)
 	viper.SetDefault("show-extra-days", false)

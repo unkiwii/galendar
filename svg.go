@@ -55,14 +55,14 @@ func (r SVGRenderer) generateSVG(config Config, cal *Calendar) string {
 	sb.WriteString("\n")
 
 	// Title (Month Year)
-	monthFont := config.FontMonth
+	monthFont := config.Fonts[FontMonths]
 	titleY := margin + 30
 	sb.WriteString(fmt.Sprintf(`  <text x="%d" y="%d" font-family="%s" font-size="32" font-weight="bold" fill="black">%s %d</text>`,
 		width/2, titleY, monthFont, config.Language.MonthName(cal.Month), cal.Year))
 	sb.WriteString("\n")
 
 	// Weekday headers
-	daysFont := config.FontDays
+	daysFont := config.Fonts[FontDays]
 	cellWidth := (width - 2*margin) / 7
 	headerY := titleY + 40
 
