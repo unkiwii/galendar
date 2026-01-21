@@ -83,7 +83,7 @@ func (r *PDFRenderer) renderMonthPage(config Config, pdf *gofpdf.Fpdf, cal *Cale
 	pdf.AddPage()
 
 	pageWidth, pageHeight := pdf.GetPageSize()
-	margin := 20.0
+	margin := 16.0
 	contentWidth := pageWidth - 2*margin
 	contentHeight := pageHeight - 2*margin
 
@@ -101,7 +101,7 @@ func (r *PDFRenderer) renderMonthPage(config Config, pdf *gofpdf.Fpdf, cal *Cale
 	weekdayNames := config.Language.WeekdayAbbreviations(cal.WeekStart)
 	cellWidth := contentWidth / 7
 	cellHeight := 10.0
-	headerY := (margin * 2)
+	headerY := (margin * 2.2)
 
 	for i, dayName := range weekdayNames {
 		dayWidth := pdf.GetStringWidth(dayName)
@@ -116,7 +116,7 @@ func (r *PDFRenderer) renderMonthPage(config Config, pdf *gofpdf.Fpdf, cal *Cale
 	pdf.SetFont(r.getFontName(config, FontDays), "", 20)
 	pdf.SetTextColor(0, 0, 0)
 	gridStartY := headerY + cellHeight
-	rows := 6 // TODO: calculate this and move things accordingly
+	rows := len(cal.Weeks)
 	rowHeight := (contentHeight - (gridStartY - margin)) / float64(rows)
 
 	for weekIdx, week := range cal.Weeks {
@@ -139,7 +139,7 @@ func (r *PDFRenderer) renderMonthPage(config Config, pdf *gofpdf.Fpdf, cal *Cale
 			}
 
 			// Draw number box
-			pdf.Rect(x, y, cellWidth/3, rowHeight/2, "D")
+			pdf.Rect(x, y, cellWidth/3, 12, "D")
 
 			// Draw day number
 			day := fmt.Sprintf("%d", day.DayNumber)

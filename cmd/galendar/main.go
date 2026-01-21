@@ -28,7 +28,7 @@ func run() error {
 	defaultMonth := 0
 	defaultYear := time.Now().Year()
 	defaultRenderer := galendar.PDFRenderer{}.Name()
-	defaultFont := "courier"
+	defaultFont := galendar.DefaultFont
 	defaultWeekStart := time.Sunday.String()
 	defaultLanguage := "es"
 
