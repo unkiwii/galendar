@@ -19,6 +19,57 @@ type Day struct {
 	Date           time.Time
 	DayNumber      int
 	IsCurrentMonth bool
+	HolidayMark    bool
+	Icon           string // TODO: maybe svg image?
+	Note           string
+}
+
+func (day Day) TextColor() (r, g, b, a int) {
+	if !day.IsCurrentMonth {
+		return 200, 200, 200, 0
+	}
+
+	return 0, 0, 0, 1
+}
+
+func (day Day) FillColor() (r, g, b, a int) {
+	if !day.IsCurrentMonth {
+		return 0, 0, 0, 0
+	}
+
+	if day.IsHoliday() {
+		return 240, 240, 240, 1
+	}
+
+	return 0, 0, 0, 0
+}
+
+func (day Day) IsHoliday() bool {
+	weekday := day.Date.Weekday()
+	return day.HolidayMark || weekday == time.Saturday || weekday == time.Sunday
+}
+
+type md struct {
+	m int
+	d int
+}
+
+type specialDay struct {
+	holiday bool
+	icon    string
+	note    string
+}
+
+// TODO: move this to a file
+var specialDays = map[md]specialDay{
+	// TODO: pdf doesn't support ñ apparently
+	{m: 1, d: 1}:   {holiday: true, icon: "", note: "Año Nuevo Roto"},
+	{m: 1, d: 23}:  {holiday: false, icon: "Birthday", note: "Mora"},
+	{m: 1, d: 25}:  {holiday: false, icon: "Birthday", note: "Lucas"},
+	{m: 2, d: 23}:  {holiday: false, icon: "Birthday", note: "Malena Cumple"},
+	{m: 5, d: 1}:   {holiday: true, icon: "", note: "Dia del Trabajador"},
+	{m: 7, d: 9}:   {holiday: true, icon: "", note: "Dia de la Independencia"},
+	{m: 12, d: 25}: {holiday: true, icon: "", note: "Navidad"},
 }
 
 // NewCalendar creates a new calendar for the given month and year
@@ -33,26 +84,17 @@ func NewCalendar(year, month int, weekStart time.Weekday) (*Calendar, error) {
 		WeekStart: weekStart,
 	}
 
-	// Get the first day of the month
-	firstDay := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
-
-	// Get the last day of the month
-	lastDay := firstDay.AddDate(0, 1, -1)
-
-	// Determine the starting day of the week for the calendar
-	// Go's time.Weekday: Sunday=0, Monday=1, ..., Saturday=6
-	firstWeekday := int(firstDay.Weekday())
+	firstDayOfMonth := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+	lastDayOfMonth := firstDayOfMonth.AddDate(0, 1, -1)
+	firstWeekday := int(firstDayOfMonth.Weekday())
 
 	// Convert to our week start system (0=Sunday, 1=Monday, ..., 6=Saturday)
 	// If weekStart is 0 (Sunday), firstWeekday (0) maps to 0
 	// If weekStart is 1 (Monday), firstWeekday (1) maps to 0, etc.
 	startOffset := (firstWeekday - int(weekStart) + 7) % 7
 
-	// Calculate how many days we need to show before the first day
-	daysBefore := startOffset
-
 	// Start from the first day we need to show
-	startDate := firstDay.AddDate(0, 0, -daysBefore)
+	startDate := firstDayOfMonth.AddDate(0, 0, -startOffset)
 
 	// Build the calendar grid (6 weeks × 7 days = 42 days max)
 	var weeks [][]Day
@@ -63,16 +105,24 @@ func NewCalendar(year, month int, weekStart time.Weekday) (*Calendar, error) {
 		for day := range 7 {
 			isCurrentMonth := currentDate.Month() == time.Month(month) && currentDate.Year() == year
 
-			weekDays = append(weekDays, Day{
+			weekDay := Day{
 				Date:           currentDate,
 				DayNumber:      currentDate.Day(),
 				IsCurrentMonth: isCurrentMonth,
-			})
+			}
+
+			if special, ok := specialDays[md{m: int(currentDate.Month()), d: currentDate.Day()}]; ok {
+				weekDay.HolidayMark = special.holiday
+				weekDay.Icon = special.icon
+				weekDay.Note = special.note
+			}
+
+			weekDays = append(weekDays, weekDay)
 
 			currentDate = currentDate.AddDate(0, 0, 1)
 
 			// Stop if we've passed the last day and we're starting a new week
-			if currentDate.After(lastDay) && day == 6 {
+			if currentDate.After(lastDayOfMonth) && day == 6 {
 				break
 			}
 		}
@@ -80,7 +130,7 @@ func NewCalendar(year, month int, weekStart time.Weekday) (*Calendar, error) {
 		weeks = append(weeks, weekDays)
 
 		// Stop if we've passed the last day
-		if currentDate.After(lastDay) {
+		if currentDate.After(lastDayOfMonth) {
 			break
 		}
 	}

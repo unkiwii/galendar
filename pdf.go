@@ -119,6 +119,16 @@ func (r *PDFRenderer) renderMonthPage(config Config, pdf *gofpdf.Fpdf, cal *Cale
 	rows := len(cal.Weeks)
 	rowHeight := (contentHeight - (gridStartY - margin)) / float64(rows)
 
+	noteFontSize, noteLineHeight := 0.0, 0.0
+	switch rows {
+	case 4:
+		noteFontSize, noteLineHeight = 18.0, 8.0
+	case 5:
+		noteFontSize, noteLineHeight = 16.0, 8.0
+	case 6:
+		noteFontSize, noteLineHeight = 14.0, 6.0
+	}
+
 	for weekIdx, week := range cal.Weeks {
 		for dayIdx, day := range week {
 			x := margin + float64(dayIdx)*cellWidth
@@ -128,27 +138,39 @@ func (r *PDFRenderer) renderMonthPage(config Config, pdf *gofpdf.Fpdf, cal *Cale
 			pdf.SetDrawColor(150, 150, 150)
 			pdf.Rect(x, y, cellWidth, rowHeight, "D")
 
-			if !day.IsCurrentMonth {
-				if !config.ShowExtraDays {
-					continue
-				} else {
-					pdf.SetTextColor(200, 200, 200)
-				}
-			} else {
-				pdf.SetTextColor(0, 0, 0)
+			tr, tg, tb, ta := day.TextColor()
+			if ta == 0 && !config.ShowExtraDays {
+				continue
 			}
+			pdf.SetTextColor(tr, tg, tb)
 
-			// Draw number box
-			pdf.Rect(x, y, cellWidth/3, 12, "D")
+			if day.IsCurrentMonth {
+				fr, fg, fb, fa := day.FillColor()
+				fillStyle := "D"
+				if fa != 0 {
+					fillStyle = "FD"
+					pdf.SetFillColor(fr, fg, fb)
+				}
+
+				// Draw number box on current month days only
+				pdf.Rect(x, y, cellWidth/3, 12, fillStyle)
+			}
 
 			// Draw day number
-			day := fmt.Sprintf("%d", day.DayNumber)
-			numberWidth := pdf.GetStringWidth(day)
-			if len(day) >= 2 {
+			dayText := fmt.Sprintf("%d", day.DayNumber)
+			numberWidth := pdf.GetStringWidth(dayText)
+			if len(dayText) >= 2 {
 				numberWidth = 0
 			}
+			pdf.SetFont(r.getFontName(config, FontDays), "", 20)
 			pdf.SetXY(x+1+(numberWidth/2), y-(rowHeight/2)+8)
-			pdf.Cell(cellWidth-4, rowHeight-4, day)
+			pdf.Cell(cellWidth-4, rowHeight-4, dayText)
+
+			if day.Note != "" {
+				pdf.SetFont("Times", "I", noteFontSize)
+				pdf.SetXY(x+1, y-(rowHeight/2)+10+noteFontSize+(noteLineHeight/4))
+				pdf.MultiCell(cellWidth, noteLineHeight, day.Note, "", "L", false)
+			}
 		}
 	}
 }
