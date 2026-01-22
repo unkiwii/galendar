@@ -14,6 +14,12 @@ type Calendar struct {
 	WeekStart time.Weekday
 }
 
+type Note struct {
+	Text string
+	Font string
+	Size float64
+}
+
 // Day represents a single day in the calendar
 type Day struct {
 	Date           time.Time
@@ -21,7 +27,7 @@ type Day struct {
 	IsCurrentMonth bool
 	HolidayMark    bool
 	Icon           string // TODO: maybe svg image?
-	Note           string
+	Note           *Note
 }
 
 func (day Day) TextColor() (r, g, b, a int) {
@@ -49,6 +55,10 @@ func (day Day) IsHoliday() bool {
 	return day.HolidayMark || weekday == time.Saturday || weekday == time.Sunday
 }
 
+func (day Day) Name() string {
+	return day.Date.Format(time.DateOnly)
+}
+
 type md struct {
 	m int
 	d int
@@ -57,19 +67,47 @@ type md struct {
 type specialDay struct {
 	holiday bool
 	icon    string
-	note    string
+	note    Note
 }
 
 // TODO: move this to a file
 var specialDays = map[md]specialDay{
 	// TODO: pdf doesn't support ñ apparently
-	{m: 1, d: 1}:   {holiday: true, icon: "", note: "Año Nuevo Roto"},
-	{m: 1, d: 23}:  {holiday: false, icon: "Birthday", note: "Mora"},
-	{m: 1, d: 25}:  {holiday: false, icon: "Birthday", note: "Lucas"},
-	{m: 2, d: 23}:  {holiday: false, icon: "Birthday", note: "Malena Cumple"},
-	{m: 5, d: 1}:   {holiday: true, icon: "", note: "Dia del Trabajador"},
-	{m: 7, d: 9}:   {holiday: true, icon: "", note: "Dia de la Independencia"},
-	{m: 12, d: 25}: {holiday: true, icon: "", note: "Navidad"},
+	{m: 1, d: 1}: {
+		holiday: true,
+		icon:    "",
+		note:    Note{Text: "Año Nuevo", Font: "/usr/share/fonts/truetype/AcPlus_IBM_VGA_9x16.ttf", Size: 22},
+	},
+	{m: 1, d: 23}: {
+		holiday: false,
+		icon:    "Birthday",
+		note:    Note{Text: "Mora"},
+	},
+	{m: 1, d: 25}: {
+		holiday: false,
+		icon:    "Birthday",
+		note:    Note{Text: "Lucas"},
+	},
+	{m: 2, d: 23}: {
+		holiday: false,
+		icon:    "Birthday",
+		note:    Note{Text: "Malena"},
+	},
+	{m: 5, d: 1}: {
+		holiday: true,
+		icon:    "",
+		note:    Note{Text: "Dia del Trabajador", Size: 14},
+	},
+	{m: 7, d: 9}: {
+		holiday: true,
+		icon:    "",
+		note:    Note{Text: "Dia de la Independencia", Size: 14},
+	},
+	{m: 12, d: 25}: {
+		holiday: true,
+		icon:    "",
+		note:    Note{Text: "Navidad"},
+	},
 }
 
 // NewCalendar creates a new calendar for the given month and year
@@ -114,7 +152,7 @@ func NewCalendar(year, month int, weekStart time.Weekday) (*Calendar, error) {
 			if special, ok := specialDays[md{m: int(currentDate.Month()), d: currentDate.Day()}]; ok {
 				weekDay.HolidayMark = special.holiday
 				weekDay.Icon = special.icon
-				weekDay.Note = special.note
+				weekDay.Note = &special.note
 			}
 
 			weekDays = append(weekDays, weekDay)

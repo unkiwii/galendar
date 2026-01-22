@@ -5,6 +5,9 @@ go 1.24.3
 require github.com/jung-kurt/gofpdf v1.16.2
 
 require (
+	github.com/adrg/strutil v0.2.2 // indirect
+	github.com/adrg/sysfont v0.1.2 // indirect
+	github.com/adrg/xdg v0.3.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect

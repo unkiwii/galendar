@@ -45,7 +45,9 @@ func run() error {
 		entity := strings.TrimPrefix(font, "font-")
 		doc := fmt.Sprintf("Font for %s (system font name or path to font file)", entity)
 		pflag.String(font, defaultFont, doc)
+		pflag.Float64(font+"-size", galendar.DefaultFontSizes[font], fmt.Sprintf("Font size for %s", entity))
 		viper.SetDefault(font, defaultFont)
+		viper.SetDefault(font+"-size", galendar.DefaultFontSizes[font])
 	}
 
 	pflag.Parse()

@@ -22,18 +22,26 @@ const (
 	FontNotes    = "font-notes"
 )
 
+var DefaultFontSizes = map[string]float64{
+	FontMonths:   24.0,
+	FontWeekdays: 22.0,
+	FontDays:     20.0,
+	FontNotes:    18.0,
+}
+
 var AllFonts = []string{FontMonths, FontWeekdays, FontDays, FontNotes}
 
 // Config holds the application configuration with all values already resolved
 type Config struct {
-	Month         int               // 1-12, 0 means current month
-	Year          int               // 0 means current year
-	WeekStart     time.Weekday      // 0-6, representing Sunday through Saturday
-	Renderer      Renderer          // "pdf" or "svg", default "pdf"
-	OutputDir     string            // Output directory name
-	ShowExtraDays bool              // show days outside current month (defaults to false)
-	Language      Language          // language to use on the output (defaults to Spanish)
-	Fonts         map[string]string // Fonts to use by name
+	Month         int                // 1-12, 0 means current month
+	Year          int                // 0 means current year
+	WeekStart     time.Weekday       // 0-6, representing Sunday through Saturday
+	Renderer      Renderer           // "pdf" or "svg", default "pdf"
+	OutputDir     string             // Output directory name
+	ShowExtraDays bool               // show days outside current month (defaults to false)
+	Language      Language           // language to use on the output (defaults to Spanish)
+	Fonts         map[string]string  // Fonts to use by name
+	FontSizes     map[string]float64 // Font sizes
 }
 
 var weekdayStringToWeekday = map[string]time.Weekday{
@@ -94,8 +102,10 @@ func NewConfig(v *viper.Viper) (Config, error) {
 	}
 
 	fonts := map[string]string{}
+	fontSizes := map[string]float64{}
 	for _, font := range AllFonts {
 		fonts[font] = viper.GetString(font)
+		fontSizes[font] = viper.GetFloat64(font + "-size")
 	}
 
 	return Config{
@@ -107,6 +117,7 @@ func NewConfig(v *viper.Viper) (Config, error) {
 		ShowExtraDays: viper.GetBool("show-extra-days"),
 		Language:      language,
 		Fonts:         fonts,
+		FontSizes:     fontSizes,
 	}, nil
 }
 
