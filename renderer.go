@@ -7,8 +7,8 @@ import (
 
 type Renderer interface {
 	Name() string
-	RenderMonth(cfg Config, month *Calendar) error
-	RenderYear(cfg Config, year *Calendar) error
+	RenderMonth(cfg Config, month Calendar) error
+	RenderYear(cfg Config, year Calendar) error
 }
 
 var renderers map[string]Renderer

@@ -40,6 +40,7 @@ func run() error {
 	pflag.StringP("output-dir", "o", "", "Output directory, defaults to current directory")
 	pflag.Bool("show-extra-days", false, "Show days outside current month, defaults to false")
 	pflag.StringP("language", "l", defaultLanguage, "Language to use when rendering the calendar, defaults to es (Spanish)")
+	pflag.StringP("special-days", "s", "", "Special Days filename, optional")
 
 	for _, font := range galendar.AllFonts {
 		entity := strings.TrimPrefix(font, "font-")
@@ -59,6 +60,7 @@ func run() error {
 	viper.SetDefault("output-dir", defaultOutputDir)
 	viper.SetDefault("show-extra-days", false)
 	viper.SetDefault("language", defaultLanguage)
+	viper.SetDefault("special-days", "")
 
 	viper.SetEnvPrefix("galendar")
 	viper.AutomaticEnv()
@@ -91,14 +93,19 @@ func writeCalendar(cfg galendar.Config) error {
 		renderFunc = cfg.Renderer.RenderYear
 	}
 
-	cal, err := galendar.NewCalendar(cfg.Year, month, cfg.WeekStart)
+	specialDays, err := galendar.LoadSpecialDaysFromFile(cfg.SpecialDaysFilename)
+	if err != nil {
+		return fmt.Errorf("can't load special days file: %w", err)
+	}
+
+	cal, err := galendar.NewCalendar(cfg.Year, month, cfg.WeekStart, specialDays)
 	if err != nil {
 		return fmt.Errorf("invalid calendar: %w", err)
 	}
 
 	err = renderFunc(cfg, cal)
 	if err != nil {
-		return fmt.Errorf("can't generate year calendar: %w", err)
+		return fmt.Errorf("can't generate calendar: %w", err)
 	}
 
 	return nil

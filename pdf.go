@@ -2,7 +2,6 @@ package galendar
 
 import (
 	"fmt"
-	"log"
 	"path/filepath"
 	"strings"
 
@@ -22,7 +21,7 @@ func (r PDFRenderer) Name() string {
 }
 
 // RenderMonth renders a single month calendar to PDF
-func (PDFRenderer) RenderMonth(config Config, cal *Calendar) error {
+func (PDFRenderer) RenderMonth(config Config, cal Calendar) error {
 	pdf, err := createDocument(config)
 	if err != nil {
 		return fmt.Errorf("can't create document: %w", err)
@@ -42,7 +41,7 @@ func (PDFRenderer) RenderMonth(config Config, cal *Calendar) error {
 }
 
 // RenderYear renders a full year calendar (12 months) to a single PDF
-func (PDFRenderer) RenderYear(config Config, cal *Calendar) error {
+func (PDFRenderer) RenderYear(config Config, cal Calendar) error {
 	pdf, err := createDocument(config)
 	if err != nil {
 		return fmt.Errorf("can't create document: %w", err)
@@ -50,12 +49,12 @@ func (PDFRenderer) RenderYear(config Config, cal *Calendar) error {
 
 	// Render each month on a separate page
 	for month := 1; month <= 12; month++ {
-		cal, err := NewCalendar(cal.Year, month, cal.WeekStart)
+		cal, err = cal.CloneAt(month)
 		if err != nil {
-			return fmt.Errorf("failed to create calendar for month %d: %w", month, err)
+			return fmt.Errorf("can't clone calendar at month %d: %w", month, err)
 		}
 
-		err = renderMonthPage(pdf, config, cal)
+		err := renderMonthPage(pdf, config, cal)
 		if err != nil {
 			return fmt.Errorf("failed to render month page %d: %w", month, err)
 		}
@@ -69,7 +68,7 @@ func (PDFRenderer) RenderYear(config Config, cal *Calendar) error {
 	return nil
 }
 
-func renderMonthPage(pdf *gofpdf.Fpdf, config Config, cal *Calendar) error {
+func renderMonthPage(pdf *gofpdf.Fpdf, config Config, cal Calendar) error {
 	pdf.AddPage()
 
 	pageWidth, pageHeight := pdf.GetPageSize()
@@ -122,7 +121,7 @@ func renderMonthPage(pdf *gofpdf.Fpdf, config Config, cal *Calendar) error {
 	noteFontSize, noteLineHeight := config.FontSizes[FontNotes], 0.0
 	switch rows {
 	case 4:
-		noteFontSize, noteLineHeight = noteFontSize, (noteFontSize/2)-1
+		noteLineHeight = (noteFontSize / 2) - 1
 	case 5:
 		noteFontSize, noteLineHeight = noteFontSize-2, (noteFontSize/2)-1
 	case 6:
@@ -174,15 +173,15 @@ func renderMonthPage(pdf *gofpdf.Fpdf, config Config, cal *Calendar) error {
 				return fmt.Errorf("can't write cell %q: %w", dayText, err)
 			}
 
-			if day.Note != nil {
+			if note := day.Note(); note != nil {
 				noteSize := noteFontSize
 				noteHeight := noteLineHeight
-				if day.Note.Size != 0 {
-					noteSize = day.Note.Size
+				if note.Size != 0 {
+					noteSize = note.Size
 					noteHeight = (noteSize / 2) - 1
 				}
-				if day.Note.Font != "" {
-					if err := registerFont(pdf, day.Name(), day.Note.Font); err != nil {
+				if note.Font != "" {
+					if err := registerFont(pdf, day.Name(), note.Font); err != nil {
 						return fmt.Errorf("failed to register font %s: %w", day.Name(), err)
 					}
 					setFont(pdf, day.Name(), noteSize)
@@ -193,9 +192,9 @@ func renderMonthPage(pdf *gofpdf.Fpdf, config Config, cal *Calendar) error {
 					return fmt.Errorf("can't set font %q: %w", FontNotes, err)
 				}
 				pdf.SetXY(x+1, dayBoxBottom+2)
-				pdf.MultiCell(cellWidth, noteHeight, day.Note.Text, "", "L", false)
+				pdf.MultiCell(cellWidth, noteHeight, note.Text, "", "L", false)
 				if err := pdf.Error(); err != nil {
-					return fmt.Errorf("can't write multi cell %q: %w", day.Note, err)
+					return fmt.Errorf("can't write multi cell %q: %w", note.Text, err)
 				}
 			}
 		}
@@ -235,7 +234,6 @@ func registerFont(pdf *gofpdf.Fpdf, internalFontName, fontName string) error {
 var registeredFontsStyle map[string]string
 
 func registerFontFile(pdf *gofpdf.Fpdf, fontName, filename string) error {
-	log.Printf("registerFontFile(%s, %s)", fontName, filename)
 	style := ""
 	if strings.Contains(filename, "Italic") || strings.Contains(filename, "Ita") {
 		style += "I"

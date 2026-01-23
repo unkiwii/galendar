@@ -8,119 +8,25 @@ import (
 // TODO: change Calendar name to Month
 // Calendar represents a calendar for a given month
 type Calendar struct {
-	Year      int
-	Month     int
-	Weeks     [][]Day
-	WeekStart time.Weekday
-}
-
-type Note struct {
-	Text string
-	Font string
-	Size float64
-}
-
-// Day represents a single day in the calendar
-type Day struct {
-	Date           time.Time
-	DayNumber      int
-	IsCurrentMonth bool
-	HolidayMark    bool
-	Icon           string // TODO: maybe svg image?
-	Note           *Note
-}
-
-func (day Day) TextColor() (r, g, b, a int) {
-	if !day.IsCurrentMonth {
-		return 200, 200, 200, 0
-	}
-
-	return 0, 0, 0, 1
-}
-
-func (day Day) FillColor() (r, g, b, a int) {
-	if !day.IsCurrentMonth {
-		return 0, 0, 0, 0
-	}
-
-	if day.IsHoliday() {
-		return 240, 240, 240, 1
-	}
-
-	return 0, 0, 0, 0
-}
-
-func (day Day) IsHoliday() bool {
-	weekday := day.Date.Weekday()
-	return day.HolidayMark || weekday == time.Saturday || weekday == time.Sunday
-}
-
-func (day Day) Name() string {
-	return day.Date.Format(time.DateOnly)
-}
-
-type md struct {
-	m int
-	d int
-}
-
-type specialDay struct {
-	holiday bool
-	icon    string
-	note    Note
-}
-
-// TODO: move this to a file
-var specialDays = map[md]specialDay{
-	// TODO: pdf doesn't support ñ apparently
-	{m: 1, d: 1}: {
-		holiday: true,
-		icon:    "",
-		note:    Note{Text: "Año Nuevo", Font: "/usr/share/fonts/truetype/AcPlus_IBM_VGA_9x16.ttf", Size: 22},
-	},
-	{m: 1, d: 23}: {
-		holiday: false,
-		icon:    "Birthday",
-		note:    Note{Text: "Mora"},
-	},
-	{m: 1, d: 25}: {
-		holiday: false,
-		icon:    "Birthday",
-		note:    Note{Text: "Lucas"},
-	},
-	{m: 2, d: 23}: {
-		holiday: false,
-		icon:    "Birthday",
-		note:    Note{Text: "Malena"},
-	},
-	{m: 5, d: 1}: {
-		holiday: true,
-		icon:    "",
-		note:    Note{Text: "Dia del Trabajador", Size: 14},
-	},
-	{m: 7, d: 9}: {
-		holiday: true,
-		icon:    "",
-		note:    Note{Text: "Dia de la Independencia", Size: 14},
-	},
-	{m: 12, d: 25}: {
-		holiday: true,
-		icon:    "",
-		note:    Note{Text: "Navidad"},
-	},
+	Year        int
+	Month       int
+	Weeks       [][]Day
+	WeekStart   time.Weekday
+	SpecialDays SpecialDays
 }
 
 // NewCalendar creates a new calendar for the given month and year
-func NewCalendar(year, month int, weekStart time.Weekday) (*Calendar, error) {
+func NewCalendar(year, month int, weekStart time.Weekday, specialDays SpecialDays) (Calendar, error) {
+	var cal Calendar
+
 	if month < 1 || month > 12 {
-		return nil, fmt.Errorf("invalid month: %d (must be 1-12)", month)
+		return cal, fmt.Errorf("invalid month: %d (must be 1-12)", month)
 	}
 
-	cal := &Calendar{
-		Year:      year,
-		Month:     month,
-		WeekStart: weekStart,
-	}
+	cal.Year = year
+	cal.Month = month
+	cal.WeekStart = weekStart
+	cal.SpecialDays = specialDays
 
 	firstDayOfMonth := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 	lastDayOfMonth := firstDayOfMonth.AddDate(0, 1, -1)
@@ -147,12 +53,7 @@ func NewCalendar(year, month int, weekStart time.Weekday) (*Calendar, error) {
 				Date:           currentDate,
 				DayNumber:      currentDate.Day(),
 				IsCurrentMonth: isCurrentMonth,
-			}
-
-			if special, ok := specialDays[md{m: int(currentDate.Month()), d: currentDate.Day()}]; ok {
-				weekDay.HolidayMark = special.holiday
-				weekDay.Icon = special.icon
-				weekDay.Note = &special.note
+				special:        specialDays.At(currentDate),
 			}
 
 			weekDays = append(weekDays, weekDay)
@@ -175,4 +76,60 @@ func NewCalendar(year, month int, weekStart time.Weekday) (*Calendar, error) {
 
 	cal.Weeks = weeks
 	return cal, nil
+}
+
+func (cal Calendar) CloneAt(month int) (Calendar, error) {
+	return NewCalendar(cal.Year, month, cal.WeekStart, cal.SpecialDays)
+}
+
+type Day struct {
+	Date           time.Time
+	DayNumber      int
+	IsCurrentMonth bool
+	special        *SpecialDay
+}
+
+func (day Day) TextColor() (r, g, b, a int) {
+	if !day.IsCurrentMonth {
+		return 200, 200, 200, 0
+	}
+
+	return 0, 0, 0, 1
+}
+
+func (day Day) FillColor() (r, g, b, a int) {
+	if !day.IsCurrentMonth {
+		return 0, 0, 0, 0
+	}
+
+	if day.IsHoliday() {
+		return 240, 240, 240, 1
+	}
+
+	return 0, 0, 0, 0
+}
+
+func (day Day) IsHoliday() bool {
+	weekday := day.Date.Weekday()
+	if weekday == time.Saturday || weekday == time.Sunday {
+		return true
+	}
+
+	if day.special != nil {
+		return day.special.Holiday
+	}
+
+	return false
+}
+
+func (day Day) Name() string {
+	return day.Date.Format(time.DateOnly)
+}
+
+func (day Day) Note() *SpecialDayNote {
+	if day.special == nil {
+		return nil
+	}
+
+	return &day.special.Note
 }

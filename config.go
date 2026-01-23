@@ -33,15 +33,16 @@ var AllFonts = []string{FontMonths, FontWeekdays, FontDays, FontNotes}
 
 // Config holds the application configuration with all values already resolved
 type Config struct {
-	Month         int                // 1-12, 0 means current month
-	Year          int                // 0 means current year
-	WeekStart     time.Weekday       // 0-6, representing Sunday through Saturday
-	Renderer      Renderer           // "pdf" or "svg", default "pdf"
-	OutputDir     string             // Output directory name
-	ShowExtraDays bool               // show days outside current month (defaults to false)
-	Language      Language           // language to use on the output (defaults to Spanish)
-	Fonts         map[string]string  // Fonts to use by name
-	FontSizes     map[string]float64 // Font sizes
+	Month               int                // 1-12, 0 means current month
+	Year                int                // 0 means current year
+	WeekStart           time.Weekday       // 0-6, representing Sunday through Saturday
+	Renderer            Renderer           // "pdf" or "svg", default "pdf"
+	OutputDir           string             // Output directory name
+	ShowExtraDays       bool               // show days outside current month (defaults to false)
+	Language            Language           // language to use on the output (defaults to Spanish)
+	Fonts               map[string]string  // Fonts to use by name
+	FontSizes           map[string]float64 // Font sizes
+	SpecialDaysFilename string             // Special days filename (optional, defaults to "")
 }
 
 var weekdayStringToWeekday = map[string]time.Weekday{
@@ -109,15 +110,16 @@ func NewConfig(v *viper.Viper) (Config, error) {
 	}
 
 	return Config{
-		Month:         viper.GetInt("month"),
-		Year:          viper.GetInt("year"),
-		WeekStart:     weekStart,
-		Renderer:      renderer,
-		OutputDir:     outputDir,
-		ShowExtraDays: viper.GetBool("show-extra-days"),
-		Language:      language,
-		Fonts:         fonts,
-		FontSizes:     fontSizes,
+		Month:               viper.GetInt("month"),
+		Year:                viper.GetInt("year"),
+		WeekStart:           weekStart,
+		Renderer:            renderer,
+		OutputDir:           outputDir,
+		ShowExtraDays:       viper.GetBool("show-extra-days"),
+		Language:            language,
+		Fonts:               fonts,
+		FontSizes:           fontSizes,
+		SpecialDaysFilename: viper.GetString("special-days"),
 	}, nil
 }
 
@@ -126,7 +128,7 @@ func (cfg Config) YearOutputFilePath() string {
 	return path.Join(cfg.OutputDir, filename)
 }
 
-func (cfg Config) MonthOutputFilePath(cal *Calendar) string {
+func (cfg Config) MonthOutputFilePath(cal Calendar) string {
 	filename := fmt.Sprintf("%s-%04d-%02d.%s", cfg.Language.Read("calendar"), cfg.Year, cal.Month, cfg.Renderer.Name())
 	return path.Join(cfg.OutputDir, filename)
 }

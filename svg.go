@@ -18,17 +18,17 @@ func (r SVGRenderer) Name() string {
 }
 
 // RenderMonth renders a single month calendar to SVG
-func (r SVGRenderer) RenderMonth(config Config, cal *Calendar) error {
+func (r SVGRenderer) RenderMonth(config Config, cal Calendar) error {
 	svg := r.generateSVG(config, cal)
 	return os.WriteFile(config.MonthOutputFilePath(cal), []byte(svg), 0644)
 }
 
 // RenderYear renders a full year calendar, creating 12 separate SVG files
-func (r SVGRenderer) RenderYear(config Config, cal *Calendar) error {
+func (r SVGRenderer) RenderYear(config Config, cal Calendar) error {
 	for month := 1; month <= 12; month++ {
-		cal, err := NewCalendar(cal.Year, month, cal.WeekStart)
+		cal, err := cal.CloneAt(month)
 		if err != nil {
-			return fmt.Errorf("failed to create calendar for month %d: %w", month, err)
+			return fmt.Errorf("can't clone calendar at month %d: %w", month, err)
 		}
 
 		if err := r.RenderMonth(config, cal); err != nil {
@@ -41,7 +41,7 @@ func (r SVGRenderer) RenderYear(config Config, cal *Calendar) error {
 
 // generateSVG generates the SVG content for a calendar
 // TODO: change return type to []byte
-func (r SVGRenderer) generateSVG(config Config, cal *Calendar) string {
+func (r SVGRenderer) generateSVG(config Config, cal Calendar) string {
 	width := 800
 	height := 600
 	margin := 40
