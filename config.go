@@ -62,9 +62,9 @@ var weekdayStringToWeekday = map[string]time.Weekday{
 	"sat":       time.Saturday,
 }
 
-// ParseWeekStart parses a week start string into a WeekStart value
+// ParseWeekday parses a weekday string into a time.Weekday value
 // Accepts: day names (sunday, monday, etc.), abbreviations (sun, mon, etc.), or numbers (0-6)
-func ParseWeekStart(s string) (time.Weekday, error) {
+func ParseWeekday(s string) (time.Weekday, error) {
 	s = strings.ToLower(strings.TrimSpace(s))
 
 	// Try numeric value first
@@ -80,7 +80,7 @@ func ParseWeekStart(s string) (time.Weekday, error) {
 }
 
 func NewConfig(v *viper.Viper) (Config, error) {
-	weekStart, err := ParseWeekStart(viper.GetString("week-start"))
+	weekStart, err := ParseWeekday(viper.GetString("week-start"))
 	if err != nil {
 		return Config{}, fmt.Errorf("invalid week start: %w", err)
 	}

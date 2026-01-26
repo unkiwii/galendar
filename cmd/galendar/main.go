@@ -93,7 +93,7 @@ func writeCalendar(cfg galendar.Config) error {
 		renderFunc = cfg.Renderer.RenderYear
 	}
 
-	specialDays, err := galendar.LoadSpecialDaysFromFile(cfg.SpecialDaysFilename)
+	specialDays, err := galendar.LoadSpecialDaysFromFile(cfg.SpecialDaysFilename, cfg)
 	if err != nil {
 		return fmt.Errorf("can't load special days file: %w", err)
 	}

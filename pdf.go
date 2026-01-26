@@ -99,7 +99,7 @@ func renderMonthPage(pdf *gofpdf.Fpdf, config Config, cal Calendar) error {
 	weekdayNames := config.Language.WeekdayAbbreviations(cal.WeekStart)
 	cellWidth := contentWidth / 7
 	cellHeight := 10.0
-	headerY := (margin * 2.2)
+	headerY := margin * 2.2
 
 	for i, dayName := range weekdayNames {
 		dayWidth := pdf.GetStringWidth(dayName)
@@ -137,6 +137,7 @@ func renderMonthPage(pdf *gofpdf.Fpdf, config Config, cal Calendar) error {
 			pdf.SetDrawColor(150, 150, 150)
 			pdf.Rect(x, y, cellWidth, rowHeight, "D")
 
+			// Get text and fill colors
 			tr, tg, tb, ta := day.TextColor()
 			if ta == 0 && !config.ShowExtraDays {
 				continue
