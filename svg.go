@@ -147,7 +147,7 @@ func (r SVGRenderer) generateSVG(config Config, cal Calendar) string {
 			sb.WriteString("\n")
 
 			// Render special day icon if present
-			if day.special != nil && day.special.Icon != "" {
+			if day.special != nil && day.special.Icon != "" && day.IsCurrentMonth {
 				if iconID, ok := iconMap[day.special.Icon]; ok {
 					iconSize := cellWidth / 3
 					iconX := x + cellWidth - iconSize - 5
@@ -166,22 +166,23 @@ func (r SVGRenderer) generateSVG(config Config, cal Calendar) string {
 				noteLineHeight := noteSize
 				if note.Size != 0 {
 					noteSize = note.Size
-					noteLineHeight = (noteSize / 2) - 1
+					noteLineHeight = noteSize
 				}
 				noteFont := config.Fonts[FontNotes]
 				if note.Font != "" {
 					noteFont = note.Font
 				}
 				noteX := x + 5
-				noteY := int(dayBoxBottom) + 24
+				noteY := int(dayBoxBottom) + int(noteLineHeight) + 2
 				availableWidth := float64(cellWidth - 5) // Leave padding on both sides
 
 				// Break text into lines that fit within the cell width
 				lines := r.wrapText(note.Text, noteSize, availableWidth)
 
 				// Render wrapped text using tspan elements
-				sb.WriteString(fmt.Sprintf(`  <text x="%d" y="%d" font-family="%s" font-size="%.1f" fill="black">`,
-					noteX, noteY, noteFont, noteSize))
+				textColor := fmt.Sprintf("rgb(%d,%d,%d)", tr, tg, tb)
+				sb.WriteString(fmt.Sprintf(`  <text x="%d" y="%d" font-family="%s" font-size="%.1f" fill="%s">`,
+					noteX, noteY, noteFont, noteSize, textColor))
 				for i, line := range lines {
 					if i == 0 {
 						// First line uses the base text element
@@ -408,7 +409,7 @@ func (r SVGRenderer) wrapText(text string, fontSize, maxWidth float64) []string 
 	}
 
 	// Approximate average character width (most fonts are roughly 0.6x the font size)
-	avgCharWidth := fontSize * 0.5
+	avgCharWidth := fontSize * 0.6
 	maxCharsPerLine := int(maxWidth / avgCharWidth)
 
 	// If text fits on one line, return it as-is
