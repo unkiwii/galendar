@@ -43,18 +43,13 @@ func (r SVGRenderer) RenderYear(config Config, cal Calendar) error {
 }
 
 // generateSVG generates the SVG content for a calendar
-// TODO: change return type to []byte
 func (r SVGRenderer) generateSVG(config Config, cal Calendar) string {
-	width := 800
-	height := 600
-	margin := 40
+	width := 1122
+	height := 794
+	margin := 60
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf(`<svg width="%d" height="%d" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">`, width, height))
-	sb.WriteString("\n")
-
-	// Background
-	sb.WriteString(`  <rect width="100%" height="100%" fill="white"/>`)
+	sb.WriteString(fmt.Sprintf(`<svg width="297mm" height="210mm" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">`, width, height))
 	sb.WriteString("\n")
 
 	// Collect unique SVG icons from special days
@@ -67,8 +62,8 @@ func (r SVGRenderer) generateSVG(config Config, cal Calendar) string {
 
 	// Title (Month Year)
 	monthFont := config.Fonts[FontMonths]
-	titleY := margin + 30
-	sb.WriteString(fmt.Sprintf(`  <text x="%s" y="%d" text-anchor="middle" font-family="%s" font-size="24" font-weight="" fill="black">%s %d</text>`,
+	titleY := margin + 10
+	sb.WriteString(fmt.Sprintf(`  <text x="%s" y="%d" text-anchor="middle" font-family="%s" font-size="36" font-weight="" fill="black">%s %d</text>`,
 		"50%", titleY, monthFont, config.Language.MonthName(cal.Month), cal.Year))
 	sb.WriteString("\n")
 
@@ -80,7 +75,7 @@ func (r SVGRenderer) generateSVG(config Config, cal Calendar) string {
 	weekdayNames := config.Language.WeekdayAbbreviations(cal.WeekStart)
 	for i, dayName := range weekdayNames {
 		x := margin + i*cellWidth + cellWidth/2
-		sb.WriteString(fmt.Sprintf(`  <text x="%d" y="%d" font-family="%s" font-size="22" font-weight="" text-anchor="middle" fill="black">%s</text>`,
+		sb.WriteString(fmt.Sprintf(`  <text x="%d" y="%d" font-family="%s" font-size="24" font-weight="" text-anchor="middle" fill="black">%s</text>`,
 			x, headerY, daysFont, dayName))
 		sb.WriteString("\n")
 	}
@@ -94,9 +89,9 @@ func (r SVGRenderer) generateSVG(config Config, cal Calendar) string {
 	noteFontSize := float64(config.FontSizes[FontNotes])
 	switch rows {
 	case 5:
-		noteFontSize = noteFontSize - 2
+		noteFontSize = noteFontSize - 1
 	case 6:
-		noteFontSize = noteFontSize - 4
+		noteFontSize = noteFontSize - 2
 	}
 
 	for weekIdx, week := range cal.Weeks {
@@ -105,7 +100,7 @@ func (r SVGRenderer) generateSVG(config Config, cal Calendar) string {
 			y := gridStartY + weekIdx*int(rowHeight)
 
 			// Draw cell border
-			sb.WriteString(fmt.Sprintf(`  <rect x="%d" y="%d" width="%d" height="%.0f" fill="white" stroke="#969696" stroke-width="1"/>`,
+			sb.WriteString(fmt.Sprintf(`  <rect x="%d" y="%d" width="%d" height="%.0f" fill="white" stroke="#000000" stroke-width="1"/>`,
 				x, y, cellWidth, rowHeight))
 			sb.WriteString("\n")
 
@@ -116,7 +111,7 @@ func (r SVGRenderer) generateSVG(config Config, cal Calendar) string {
 			}
 
 			// Draw day box rectangle for current month days (matching PDF)
-			dayBoxHeight := 36.0
+			dayBoxHeight := 50.0
 			dayBoxBottom := float64(y) + dayBoxHeight
 			if day.IsCurrentMonth {
 				fr, fg, fb, fa := day.FillColor()
@@ -126,7 +121,7 @@ func (r SVGRenderer) generateSVG(config Config, cal Calendar) string {
 					fill = fmt.Sprintf("rgb(%d,%d,%d)", fr, fg, fb)
 				}
 
-				sb.WriteString(fmt.Sprintf(`  <rect x="%d" y="%d" width="%.0f" height="%.0f" fill="%s" stroke="#969696"/>`,
+				sb.WriteString(fmt.Sprintf(`  <rect x="%d" y="%d" width="%.0f" height="%.0f" fill="%s" stroke="#000000"/>`,
 					x, y, float64(cellWidth)/3, dayBoxHeight, fill))
 				sb.WriteString("\n")
 			}
@@ -140,9 +135,9 @@ func (r SVGRenderer) generateSVG(config Config, cal Calendar) string {
 			if len(dayText) >= 2 {
 				numberWidth = 0
 			}
-			textX := x + 4 + (numberWidth / 2)
-			textY := y + (int(dayBoxHeight) / 2) + 8
-			sb.WriteString(fmt.Sprintf(`  <text x="%d" y="%d" font-family="%s" font-size="20" fill="%s">%s</text>`,
+			textX := x + 8 + (numberWidth / 2)
+			textY := y + 10 + (int(dayBoxHeight) / 2)
+			sb.WriteString(fmt.Sprintf(`  <text x="%d" y="%d" font-family="%s" font-size="30" fill="%s">%s</text>`,
 				textX, textY, daysFont, textColor, dayText))
 			sb.WriteString("\n")
 
@@ -173,8 +168,8 @@ func (r SVGRenderer) generateSVG(config Config, cal Calendar) string {
 					noteFont = note.Font
 				}
 				noteX := x + 5
-				noteY := int(dayBoxBottom) + int(noteLineHeight) + 2
-				availableWidth := float64(cellWidth - 5) // Leave padding on both sides
+				noteY := int(dayBoxBottom) + int(noteLineHeight) + 5
+				availableWidth := float64(cellWidth - 4) // Leave padding on both sides
 
 				// Break text into lines that fit within the cell width
 				lines := r.wrapText(note.Text, noteSize, availableWidth)

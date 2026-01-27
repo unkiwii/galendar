@@ -91,7 +91,7 @@ type Day struct {
 
 func (day Day) TextColor() (r, g, b, a int) {
 	if !day.IsCurrentMonth {
-		return 200, 200, 200, 0
+		return 128, 128, 128, 0
 	}
 
 	return 0, 0, 0, 1
@@ -103,7 +103,7 @@ func (day Day) FillColor() (r, g, b, a int) {
 	}
 
 	if day.IsHoliday() {
-		return 240, 240, 240, 1
+		return 200, 200, 200, 1
 	}
 
 	return 0, 0, 0, 0

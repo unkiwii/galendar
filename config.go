@@ -26,7 +26,7 @@ var DefaultFontSizes = map[string]float64{
 	FontMonths:   24.0,
 	FontWeekdays: 22.0,
 	FontDays:     20.0,
-	FontNotes:    18.0,
+	FontNotes:    20.0,
 }
 
 var AllFonts = []string{FontMonths, FontWeekdays, FontDays, FontNotes}
