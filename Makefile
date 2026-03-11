@@ -46,6 +46,12 @@ clean:
 	@rm -f *.pdf *.svg
 	@echo "Clean complete"
 
+# Build galendar and run it to build the current month
+.PHONY: month
+month: build
+	@echo "Creating current month calendar"
+	@./$(BINARY_NAME) --font-notes /usr/share/fonts/truetype/Go-Medium.ttf -r svg -s special_days.toml -m $(shell date +%m)
+
 # Help target
 .PHONY: help
 help:

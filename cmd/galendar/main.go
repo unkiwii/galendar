@@ -34,7 +34,7 @@ func run() error {
 
 	pflag.IntP("month", "m", defaultMonth, "Month: 1-12 to render the month, 0 (or missing) to render the whole year")
 	pflag.IntP("year", "y", defaultYear, "Year")
-	pflag.String("renderer", defaultRenderer, "Output format: pdf or svg")
+	pflag.StringP("renderer", "r", defaultRenderer, "Output format: pdf or svg")
 	pflag.String("week-start", defaultWeekStart, "Week start day: 0-6 (0=Sunday) or day name (sunday, monday, etc.)")
 	pflag.String("config", "", "Path to JSON configuration file")
 	pflag.StringP("output-dir", "o", "", "Output directory, defaults to current directory")
