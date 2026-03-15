@@ -69,7 +69,13 @@ func LoadSpecialDaysFromFile(filename string, cfg Config) (SpecialDays, error) {
 			},
 		}
 
-		days[key] = specialDay
+		old, ok := days[key]
+		if ok {
+			days[key] = specialDay.Merge(old)
+		} else {
+			days[key] = specialDay
+		}
+
 	}
 
 	return days, nil
@@ -85,15 +91,6 @@ type specialDaysTomlFile struct {
 		Font    string
 		Size    float64
 	}
-}
-
-type specialDaysKey struct {
-	month int
-	day   int
-}
-
-func (key specialDaysKey) String() string {
-	return fmt.Sprintf("%d/%d", key.month, key.day)
 }
 
 func specialDaysKeyFromString(layout, s string, cfg Config) (specialDaysKey, error) {
