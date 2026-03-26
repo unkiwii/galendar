@@ -50,17 +50,25 @@ clean:
 .PHONY: month
 month: build
 	@echo "Creating current month calendar"
-	@./$(BINARY_NAME) --font-notes /usr/share/fonts/truetype/Go-Medium.ttf -r svg -s special_days.toml -m $(shell date +%m)
+	@./$(BINARY_NAME) --font-notes /usr/share/fonts/truetype/Go-Medium.ttf --show-extra-days --renderer svg --special-days special_days.toml --month $(shell date +%m)
+
+# Build galendar and run it to build the next month
+.PHONY: next_month
+next_month: build
+	@echo "Creating next month calendar"
+	@./$(BINARY_NAME) --font-notes /usr/share/fonts/truetype/Go-Medium.ttf --show-extra-days --renderer svg --special-days special_days.toml --month $(shell echo "`date +%m` + 1" | bc)
 
 # Help target
 .PHONY: help
 help:
 	@echo "Available targets:"
-	@echo "  make          - Build the project (default)"
-	@echo "  make install  - Build and install to $(INSTALL_DIR)"
-	@echo "  make run      - Build and run (use ARGS='--year 2024' to pass arguments)"
-	@echo "  make clean    - Remove build artifacts and generated files"
-	@echo "  make help     - Show this help message"
+	@echo "  make            - Build the project (default)"
+	@echo "  make install    - Build and install to $(INSTALL_DIR)"
+	@echo "  make run        - Build and run (use ARGS='--year 2024' to pass arguments)"
+	@echo "  make month      - Build and run to create current month calendar"
+	@echo "  make next_month - Build and run to create next month calendar"
+	@echo "  make clean      - Remove build artifacts and generated files"
+	@echo "  make help       - Show this help message"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make run ARGS=\"--year 2024\""
